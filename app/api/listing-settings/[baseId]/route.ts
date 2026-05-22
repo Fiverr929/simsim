@@ -29,6 +29,29 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ baseId
       listingSettings: { ...(config.listingSettings ?? emptySettings()), ...settings },
     }
     await prisma.base.update({ where: { id: baseId }, data: { config: JSON.stringify(merged) } })
+
+    // Sync Category field options whenever categories change
+    if (settings.categories !== undefined) {
+      const categoryOptions = merged.listingSettings!.categories.map((c) => ({
+        id: c.id,
+        label: c.name,
+        color: c.color,
+      }))
+      const tables = await prisma.table.findMany({
+        where: { baseId },
+        include: { fields: { where: { name: "Category" } } },
+      })
+      for (const table of tables) {
+        for (const field of table.fields) {
+          const existing = JSON.parse(field.config) as Record<string, unknown>
+          await prisma.field.update({
+            where: { id: field.id },
+            data: { config: JSON.stringify({ ...existing, options: categoryOptions }) },
+          })
+        }
+      }
+    }
+
     return NextResponse.json(merged.listingSettings)
   } catch (err) {
     return handleApiError(err)
