@@ -111,6 +111,7 @@ export function TableView() {
   const [automationRunning, setAutomationRunning] = useState(false)
   const [automationProgress, setAutomationProgress] = useState<{ done: number; total: number } | null>(null)
   const abortRef = useRef(false)
+  const runningRef = useRef(false)
 
   useEffect(() => {
     setViews([])
@@ -207,7 +208,7 @@ export function TableView() {
   const fields = table?.fields ?? []
 
   const runAutomation = useCallback(async (recordIds: string[]) => {
-    if (!activeBaseId || automationRunning) return
+    if (!activeBaseId || runningRef.current) return
 
     let batchSize = 10
     try {
@@ -215,14 +216,17 @@ export function TableView() {
       if (res.ok) {
         const s = await res.json()
         batchSize = s.batchSize ?? 10
+      } else {
+        console.warn(`Failed to fetch listing settings: ${res.status}`)
       }
-    } catch { /* use default */ }
+    } catch { console.warn("Failed to fetch batchSize, using default") }
 
     const batch = recordIds.slice(0, batchSize)
     const automationStateField = fields.find((f) => f.name === "Automation State")
 
     setAutomationRunning(true)
     abortRef.current = false
+    runningRef.current = true
     setAutomationProgress({ done: 0, total: batch.length })
 
     if (automationStateField) {
@@ -269,7 +273,8 @@ export function TableView() {
 
     setAutomationRunning(false)
     setAutomationProgress(null)
-  }, [activeBaseId, automationRunning, fields, patchLocalRecord, updateRecord])
+    runningRef.current = false
+  }, [activeBaseId, fields, patchLocalRecord, updateRecord])
 
   const retryErrors = useCallback(() => {
     const automationStateField = fields.find((f) => f.name === "Automation State")
