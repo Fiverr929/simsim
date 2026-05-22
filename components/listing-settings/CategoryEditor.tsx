@@ -8,7 +8,6 @@ import type { Field } from "@/types/core"
 import { TriggerConfig } from "./TriggerConfig"
 import { FieldRoleTable } from "./FieldRoleTable"
 import { AITemplateEditor } from "./AITemplateEditor"
-import { DescriptionBlockEditor as _DescriptionBlockEditor } from "./DescriptionBlockEditor"
 import { PostProcessRules } from "./PostProcessRules"
 
 type Tab = "identity" | "trigger" | "fields" | "ai" | "postprocess"
