@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { readFile } from "fs/promises"
-import { join } from "path"
+import { resolve, sep } from "path"
 import { randomUUID } from "crypto"
 import { prisma } from "@/lib/db"
 import { handleApiError, apiError } from "@/lib/api"
@@ -33,9 +33,10 @@ async function callGemini(
   const apiKey = process.env.GOOGLE_API_KEY
   if (!apiKey) throw new Error("GOOGLE_API_KEY not set")
 
-  const url = `https://aiplatform.googleapis.com/v1/publishers/google/models/${MODEL}:generateContent?key=${apiKey}`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`
   const res = await fetch(url, {
     method: "POST",
+    signal: AbortSignal.timeout(25_000),
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [...imageParts, { text: prompt }] }],
@@ -117,8 +118,12 @@ function applyStringRules(fieldName: string, value: string, rules: PostProcessRu
 
 export async function POST(req: Request) {
   try {
-    const { recordId, baseId } = await req.json()
-    if (!recordId || !baseId) return apiError("recordId and baseId required", 400)
+    let body: { recordId?: unknown; baseId?: unknown }
+    try { body = await req.json() } catch { return apiError("Invalid request body", 400) }
+    const { recordId, baseId } = body
+    if (typeof recordId !== "string" || typeof baseId !== "string") {
+      return apiError("recordId and baseId required", 400)
+    }
 
     // Load record + fields
     const record = await prisma.record.findUnique({
@@ -130,7 +135,13 @@ export async function POST(req: Request) {
     // Load base settings
     const base = await prisma.base.findUnique({ where: { id: baseId } })
     if (!base) return apiError("Base not found", 404)
-    const baseConfig = JSON.parse(base.config) as BaseConfig
+    if (record.table.baseId !== baseId) return apiError("Record not found", 404)
+    let baseConfig: BaseConfig
+    try {
+      baseConfig = JSON.parse(base.config) as BaseConfig
+    } catch {
+      return apiError("Base configuration is corrupted", 500)
+    }
     const settings = baseConfig.listingSettings ?? emptySettings()
 
     const fields = record.table.fields
@@ -147,15 +158,27 @@ export async function POST(req: Request) {
     const imageUrls: string[] = imagesField && Array.isArray(data[imagesField.id])
       ? (data[imagesField.id] as string[])
       : []
-    if (imageUrls.length === 0) return apiError("No images attached", 400)
-
     // Load images as base64
-    const imageParts = await Promise.all(
-      imageUrls.map(async (url) => {
-        const buffer = await readFile(join(process.cwd(), "public", url))
-        return { inline_data: { mime_type: getMimeType(url), data: buffer.toString("base64") } }
-      })
-    )
+    // Filter to string-only URLs
+    const safeImageUrls = imageUrls.filter((u): u is string => typeof u === "string")
+    if (safeImageUrls.length === 0) return apiError("No images attached", 400)
+
+    const publicDir = resolve(process.cwd(), "public")
+    let imageParts: Array<{ inline_data: { mime_type: string; data: string } }>
+    try {
+      imageParts = await Promise.all(
+        safeImageUrls.map(async (url) => {
+          const target = resolve(publicDir, url.startsWith("/") ? url.slice(1) : url)
+          if (!target.startsWith(publicDir + sep)) {
+            throw new Error(`Invalid image path: ${url}`)
+          }
+          const buffer = await readFile(target)
+          return { inline_data: { mime_type: getMimeType(url), data: buffer.toString("base64") } }
+        })
+      )
+    } catch (err) {
+      return apiError(`Could not read image: ${(err as Error).message}`, 400)
+    }
 
     // Collect context values (for template variable substitution)
     const contextValues: Record<string, string> = {
@@ -220,8 +243,8 @@ export async function POST(req: Request) {
         fieldUpdates[field.id] = tagIds
       } else if (typeof value === "string") {
         fieldUpdates[field.id] = applyStringRules(field.name, value, postProcessRules)
-      } else {
-        fieldUpdates[field.id] = value as CellValue
+      } else if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+        fieldUpdates[field.id] = value
       }
     }
 
