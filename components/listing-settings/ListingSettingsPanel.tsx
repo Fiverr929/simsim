@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import type { ReactNode } from "react"
 import { X, SlidersHorizontal, Tag, Library } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -13,7 +14,7 @@ import { TemplatesLibrary } from "./TemplatesLibrary"
 
 type NavItem = "defaults" | "categories" | "templates"
 
-const NAV: Array<{ id: NavItem; label: string; icon: React.ReactNode }> = [
+const NAV: Array<{ id: NavItem; label: string; icon: ReactNode }> = [
   { id: "defaults",   label: "Store Defaults", icon: <SlidersHorizontal size={14} /> },
   { id: "categories", label: "Categories",     icon: <Tag size={14} /> },
   { id: "templates",  label: "Templates",      icon: <Library size={14} /> },
@@ -31,8 +32,13 @@ export function ListingSettingsPanel({ baseId, fields, onClose }: Props) {
   const [saving, setSaving] = useState(false)
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/listing-settings/${baseId}`)
-    if (res.ok) setSettings(await res.json())
+    try {
+      const res = await fetch(`/api/listing-settings/${baseId}`)
+      if (res.ok) setSettings(await res.json())
+      else toast.error("Failed to load settings")
+    } catch {
+      toast.error("Failed to load settings")
+    }
   }, [baseId])
 
   useEffect(() => { load() }, [load])
