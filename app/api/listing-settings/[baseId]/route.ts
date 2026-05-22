@@ -43,7 +43,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ baseId
       })
       for (const table of tables) {
         for (const field of table.fields) {
-          const existing = JSON.parse(field.config) as Record<string, unknown>
+          let existing: Record<string, unknown> = {}
+          try {
+            existing = JSON.parse(field.config) as Record<string, unknown>
+          } catch {
+            continue
+          }
           await prisma.field.update({
             where: { id: field.id },
             data: { config: JSON.stringify({ ...existing, options: categoryOptions }) },
