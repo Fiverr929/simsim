@@ -1,0 +1,91 @@
+<h2>Etsy Seller Workspace — Full Module Map</h2>
+<p class="subtitle">7 modules. Pick the structure that fits best.</p>
+
+<div style="margin-bottom: 32px;">
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+
+    <div style="background: #f97316; color: white; border-radius: 10px; padding: 14px; grid-column: span 2;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="font-size:28px;">📋</div>
+        <div>
+          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: .05em; opacity:.8;">Create</div>
+          <div style="font-weight: 700; font-size: 15px;">Listing Creator</div>
+          <div style="font-size: 12px; opacity:.9; margin-top:2px;">Upload image → AI writes title, description, 13 tags → review → publish to Etsy. Shop Defaults auto-fill repeat fields so you only fill what changes.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background: #0ea5e9; color: white; border-radius: 10px; padding: 14px;">
+      <div style="font-size:22px; margin-bottom:6px;">🟢</div>
+      <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">Active Listings</div>
+      <div style="font-size: 12px; opacity:.9;">Sync all live Etsy listings. View stats (views, favourites, sales). Bulk edit title/tags/price. Renew expiring listings. Deactivate.</div>
+    </div>
+
+    <div style="background: #8b5cf6; color: white; border-radius: 10px; padding: 14px;">
+      <div style="font-size:22px; margin-bottom:6px;">🔍</div>
+      <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">Keyword Research</div>
+      <div style="font-size: 12px; opacity:.9;">Research tags and titles. Attach winning keywords to a listing draft before publishing.</div>
+    </div>
+
+    <div style="background: #0ea5e9; color: white; border-radius: 10px; padding: 14px;">
+      <div style="font-size:22px; margin-bottom:6px;">📦</div>
+      <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">Orders</div>
+      <div style="font-size: 12px; opacity:.9;">Pull all Etsy orders. Buyer name, address, items, fulfilment status. Link to listings.</div>
+    </div>
+
+    <div style="background: #10b981; color: white; border-radius: 10px; padding: 14px;">
+      <div style="font-size:22px; margin-bottom:6px;">💰</div>
+      <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">Finance</div>
+      <div style="font-size: 12px; opacity:.9;">Revenue, Etsy fees, profit per listing. Monthly summaries. Derived from Orders.</div>
+    </div>
+
+    <div style="background: #ec4899; color: white; border-radius: 10px; padding: 14px;">
+      <div style="font-size:22px; margin-bottom:6px;">🖨️</div>
+      <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">Printify Sync</div>
+      <div style="font-size: 12px; opacity:.9;">Link Active Listings to Printify products. Auto-push new orders to Printify for fulfilment.</div>
+    </div>
+
+    <div style="background: #6b7280; color: white; border-radius: 10px; padding: 14px;">
+      <div style="font-size:22px; margin-bottom:6px;">⚙️</div>
+      <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">Shop Defaults</div>
+      <div style="font-size: 12px; opacity:.9;">Set once: Who Made, Type, Taxonomy ID, Return Policy, Shop Section. Pre-fills every new listing.</div>
+    </div>
+
+  </div>
+</div>
+
+<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px; margin-bottom:24px;">
+  <div style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px;">How the data connects</div>
+  <div style="font-size:13px; color:#334155; line-height:1.8;">
+    <strong>Listing Creator</strong> → publishes to Etsy → appears in <strong>Active Listings</strong><br>
+    <strong>Active Listings</strong> ↔ linked to <strong>Printify</strong> products<br>
+    <strong>Orders</strong> → auto-sent to <strong>Printify</strong> for fulfilment → feeds <strong>Finance</strong><br>
+    <strong>Shop Defaults</strong> → pre-fills <strong>Listing Creator</strong> fields<br>
+    <strong>Keyword Research</strong> → attached to listings in <strong>Listing Creator</strong>
+  </div>
+</div>
+
+<h3 style="margin-bottom: 12px;">How should this live in the app?</h3>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Dedicated Etsy section in the sidebar</h3>
+      <p>The workspace gets an "Etsy" nav section. Each module is its own page with its own layout — the Listing Creator is a form, Orders is a table, Finance is a dashboard, etc. Clean and purpose-built.</p>
+      <div style="margin-top: 8px; padding: 8px; background: #f0fdf4; border-radius: 6px; border: 1px solid #bbf7d0; font-size: 12px; color: #166534;">
+        ✓ Recommended — each module gets the right UI, scales to Amazon later
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Etsy as smart base templates in the existing workspace</h3>
+      <p>A "New Base" wizard creates the right tables automatically. All modules live as tables/views inside the workspace. No new nav section needed.</p>
+      <div style="margin-top: 8px; padding: 8px; background: #fff7ed; border-radius: 6px; border: 1px solid #fed7aa; font-size: 12px; color: #9a3412;">
+        ⚠ Harder to build proper UIs for Finance, Keywords, and Printify sync
+      </div>
+    </div>
+  </div>
+</div>

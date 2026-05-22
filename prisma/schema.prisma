@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Space {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  name      String   @default("My Space")
+  icon      String   @default("🏠")
+  bases     Base[]
+}
+
+model Base {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  name      String
+  icon      String   @default("📊")
+  config    String   @default("{}")
+  spaceId   String
+  space     Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  tables    Table[]
+}
+
+model Table {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  name      String
+  order     Int      @default(0)
+  baseId    String
+  base      Base     @relation(fields: [baseId], references: [id], onDelete: Cascade)
+  fields    Field[]
+  records   Record[]
+  views     View[]
+}
+
+model Field {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  name      String
+  type      String
+  config    String   @default("{}")
+  order     Int      @default(0)
+  isPrimary Boolean  @default(false)
+  tableId   String
+  table     Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
+}
+
+model Record {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  order     Float    @default(0)
+  data      String   @default("{}")
+  tableId   String
+  table     Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
+}
+
+model View {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  name      String
+  type      String
+  config    String   @default("{}")
+  order     Int      @default(0)
+  tableId   String
+  table     Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
+}

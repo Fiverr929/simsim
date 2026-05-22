@@ -1,0 +1,28 @@
+-- CreateTable
+CREATE TABLE "Listing" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'empty',
+    "etsyListingId" INTEGER,
+    "title" TEXT NOT NULL DEFAULT '',
+    "description" TEXT NOT NULL DEFAULT '',
+    "price" REAL,
+    "sku" TEXT,
+    "images" TEXT NOT NULL DEFAULT '[]',
+    "videoPath" TEXT,
+    "digitalFiles" TEXT NOT NULL DEFAULT '[]',
+    "tags" TEXT NOT NULL DEFAULT '[]',
+    "taxonomyId" INTEGER,
+    "whenMade" TEXT NOT NULL DEFAULT 'made_to_order',
+    "whoMade" TEXT NOT NULL DEFAULT 'i_did',
+    "isSupply" BOOLEAN NOT NULL DEFAULT false,
+    "aiGenerated" BOOLEAN NOT NULL DEFAULT false,
+    "quantity" INTEGER NOT NULL DEFAULT 999,
+    "autoRenew" BOOLEAN NOT NULL DEFAULT false,
+    "isPersonalizable" BOOLEAN NOT NULL DEFAULT false,
+    "personalizationInstructions" TEXT,
+    "shopSectionId" INTEGER,
+    "featuredListing" BOOLEAN NOT NULL DEFAULT false,
+    "isTaxable" BOOLEAN NOT NULL DEFAULT true
+);

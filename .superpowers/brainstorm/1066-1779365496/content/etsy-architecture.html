@@ -1,0 +1,65 @@
+<h2>Etsy Seller Workspace — Proposed Architecture</h2>
+<p class="subtitle">How all the modules fit together. Click the approach that feels right.</p>
+
+<div style="margin-bottom: 32px;">
+  <h3 style="margin-bottom: 12px;">The Module Map</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 8px;">
+    <div style="background: #f97316; color: white; border-radius: 10px; padding: 14px;">
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: .05em; opacity:.8; margin-bottom: 6px;">Core (build first)</div>
+      <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">📋 Listing Creator</div>
+      <div style="font-size: 12px; opacity:.9;">Upload image → AI generates title, description, 13 tags. Default details auto-fill. Publish to Etsy.</div>
+    </div>
+    <div style="background: #8b5cf6; color: white; border-radius: 10px; padding: 14px;">
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: .05em; opacity:.8; margin-bottom: 6px;">Research</div>
+      <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">🔍 Keyword Research</div>
+      <div style="font-size: 12px; opacity:.9;">Find high-traffic tags and titles before creating a listing. Attach keywords to a listing draft.</div>
+    </div>
+    <div style="background: #0ea5e9; color: white; border-radius: 10px; padding: 14px;">
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: .05em; opacity:.8; margin-bottom: 6px;">Operations</div>
+      <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">📦 Orders</div>
+      <div style="font-size: 12px; opacity:.9;">Pull all Etsy orders. Buyer name, address, items bought, fulfilment status.</div>
+    </div>
+    <div style="background: #10b981; color: white; border-radius: 10px; padding: 14px;">
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: .05em; opacity:.8; margin-bottom: 6px;">Money</div>
+      <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">💰 Finance</div>
+      <div style="font-size: 12px; opacity:.9;">Revenue, Etsy fees, profit per listing. Monthly summaries. Derived from Orders data.</div>
+    </div>
+    <div style="background: #ec4899; color: white; border-radius: 10px; padding: 14px;">
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: .05em; opacity:.8; margin-bottom: 6px;">Fulfilment</div>
+      <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">🖨️ Printify</div>
+      <div style="font-size: 12px; opacity:.9;">Link listings to Printify products. Auto-push orders to Printify for fulfilment.</div>
+    </div>
+    <div style="background: #6b7280; color: white; border-radius: 10px; padding: 14px;">
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: .05em; opacity:.8; margin-bottom: 6px;">Config</div>
+      <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">⚙️ Shop Defaults</div>
+      <div style="font-size: 12px; opacity:.9;">Set once: Who Made, Type, Taxonomy, Return Policy. Pre-fills every new listing automatically.</div>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-bottom: 12px;">Pick the structure that feels right</h3>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Dedicated Etsy section in the sidebar</h3>
+      <p>The workspace sidebar gets an "Etsy" section alongside the generic bases. Each module (Listings, Orders, Finance, Keywords, Printify) is its own page inside that section. Clean, purpose-built, like a mini-app inside the workspace.</p>
+      <div style="margin-top: 8px; padding: 10px; background: #f0fdf4; border-radius: 6px; border: 1px solid #bbf7d0;">
+        <strong style="font-size: 12px; color: #166534;">Recommended</strong>
+        <div style="font-size: 12px; color: #166534;">Best UX. Each module gets its own layout. Scales cleanly as you add Amazon later.</div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Etsy as a smart base with guided table creation</h3>
+      <p>Instead of a seed route, a "New Base" wizard lets you pick "Etsy Store". It creates the Listings, Orders, and Customers tables automatically with the right fields. The automation bar stays in RecordModal as-is. Keyword research and Finance are views within those tables.</p>
+      <div style="margin-top: 8px; padding: 10px; background: #fff7ed; border-radius: 6px; border: 1px solid #fed7aa;">
+        <strong style="font-size: 12px; color: #9a3412;">Trade-off</strong>
+        <div style="font-size: 12px; color: #9a3412;">Stays within the current workspace paradigm. Harder to build dedicated UIs like Keyword Research or Finance dashboards.</div>
+      </div>
+    </div>
+  </div>
+</div>
