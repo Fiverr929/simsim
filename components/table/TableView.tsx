@@ -16,6 +16,7 @@ import { DynamicKanban } from "@/components/table/DynamicKanban"
 import { RecordModal } from "@/components/table/RecordModal"
 import { AddFieldModal } from "@/components/table/AddFieldModal"
 import { ListingSettingsPanel } from "@/components/listing-settings/ListingSettingsPanel"
+import { AutomationToolbar } from "@/components/table/AutomationToolbar"
 import type { AppRecord, CellValue, FieldConfig, FieldType, Filter, Sort, View, ViewConfig } from "@/types/core"
 
 function detectDelimiter(text: string): string {
@@ -84,7 +85,7 @@ function compareValues(a: CellValue, b: CellValue): number {
 export function TableView() {
   const { activeTableId, activeViewId, setActiveViewId, activeSpaceId, setActiveSpaceId, setActiveBaseId, setActiveTableId, activeBaseId, activeBaseIntegration } = useApp()
   const { table, loading, addField, updateField, deleteField, deleteFields, refetch } = useTable(activeTableId)
-  const { records, addRecord, updateRecord, deleteRecord, deleteRecords } = useRecords(activeTableId)
+  const { records, addRecord, updateRecord, deleteRecord, deleteRecords, patchLocalRecord } = useRecords(activeTableId)
 
   useHotkeys("mod+n", (e) => {
     e.preventDefault()
@@ -106,6 +107,10 @@ export function TableView() {
   const [sorts, setSorts] = useState<Sort[]>([])
   const [filters, setFilters] = useState<Filter[]>([])
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const [selectedRecordIds, setSelectedRecordIds] = useState<string[]>([])
+  const [automationRunning, setAutomationRunning] = useState(false)
+  const [automationProgress, setAutomationProgress] = useState<{ done: number; total: number } | null>(null)
+  const abortRef = useRef(false)
 
   useEffect(() => {
     setViews([])
@@ -114,6 +119,13 @@ export function TableView() {
   }, [activeTableId])
 
   useEffect(() => { setShowSettings(false) }, [activeTableId])
+
+  useEffect(() => {
+    setSelectedRecordIds([])
+    setAutomationRunning(false)
+    setAutomationProgress(null)
+    abortRef.current = false
+  }, [activeTableId])
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -193,6 +205,80 @@ export function TableView() {
   }, [updateField])
 
   const fields = table?.fields ?? []
+
+  const runAutomation = useCallback(async (recordIds: string[]) => {
+    if (!activeBaseId || automationRunning) return
+
+    let batchSize = 10
+    try {
+      const res = await fetch(`/api/listing-settings/${activeBaseId}`)
+      if (res.ok) {
+        const s = await res.json()
+        batchSize = s.batchSize ?? 10
+      }
+    } catch { /* use default */ }
+
+    const batch = recordIds.slice(0, batchSize)
+    const automationStateField = fields.find((f) => f.name === "Automation State")
+
+    setAutomationRunning(true)
+    abortRef.current = false
+    setAutomationProgress({ done: 0, total: batch.length })
+
+    if (automationStateField) {
+      for (const id of batch) {
+        patchLocalRecord(id, { [automationStateField.id]: "queued" })
+      }
+    }
+
+    let done = 0
+    for (const recordId of batch) {
+      if (abortRef.current) break
+
+      if (automationStateField) {
+        patchLocalRecord(recordId, { [automationStateField.id]: "generating" })
+        await updateRecord(recordId, { [automationStateField.id]: "generating" })
+      }
+
+      try {
+        const res = await fetch("/api/automation/run-row", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ recordId, baseId: activeBaseId }),
+        })
+
+        if (res.ok) {
+          const { fieldUpdates } = await res.json()
+          patchLocalRecord(recordId, fieldUpdates)
+        } else {
+          if (automationStateField) {
+            patchLocalRecord(recordId, { [automationStateField.id]: "error" })
+            await updateRecord(recordId, { [automationStateField.id]: "error" })
+          }
+        }
+      } catch {
+        if (automationStateField) {
+          patchLocalRecord(recordId, { [automationStateField.id]: "error" })
+          await updateRecord(recordId, { [automationStateField.id]: "error" })
+        }
+      }
+
+      done++
+      setAutomationProgress({ done, total: batch.length })
+    }
+
+    setAutomationRunning(false)
+    setAutomationProgress(null)
+  }, [activeBaseId, automationRunning, fields, patchLocalRecord, updateRecord])
+
+  const retryErrors = useCallback(() => {
+    const automationStateField = fields.find((f) => f.name === "Automation State")
+    if (!automationStateField) return
+    const errorIds = records
+      .filter((r) => r.data[automationStateField.id] === "error")
+      .map((r) => r.id)
+    if (errorIds.length > 0) runAutomation(errorIds)
+  }, [fields, records, runAutomation])
   const viewType = activeView?.type ?? "grid"
 
   const displayRecords = useMemo(() => {
@@ -452,6 +538,18 @@ export function TableView() {
           />
         ) : (
           <>
+            {activeBaseIntegration === "etsy" && (
+              <AutomationToolbar
+                records={displayRecords}
+                fields={fields}
+                selectedRecordIds={selectedRecordIds}
+                running={automationRunning}
+                progress={automationProgress}
+                onRun={runAutomation}
+                onStop={() => { abortRef.current = true }}
+                onRetry={retryErrors}
+              />
+            )}
             {expandedRecord && (
               <RecordModal
                 key={expandedRecord.id}
@@ -502,6 +600,7 @@ export function TableView() {
                 onFieldConfigUpdate={handleFieldConfigUpdate}
                 fieldOrder={activeView?.config.fieldOrder}
                 onFieldOrderChange={(order) => saveViewConfig({ fieldOrder: order })}
+                onSelectionChange={activeBaseIntegration === "etsy" ? setSelectedRecordIds : undefined}
               />
             )}
             {viewType === "gallery" && (
