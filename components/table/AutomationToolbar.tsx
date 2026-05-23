@@ -40,10 +40,7 @@ export function AutomationToolbar({
 
   const reviewIds = automationStateField
     ? records
-        .filter((r) => {
-          const reviewOption = automationStateField.config.options?.find((o) => o.label === "review")
-          return reviewOption && r.data[automationStateField.id] === reviewOption.id
-        })
+        .filter((r) => r.data[automationStateField.id] === "review")
         .map((r) => r.id)
     : []
 
