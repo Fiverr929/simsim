@@ -170,12 +170,23 @@ export async function POST(req: Request) {
     // 5. Activate listing
     await etsy.put(`/application/shops/${SHOP_ID}/listings/${listingId}`, { state: "active" })
 
-    // 6. Write Etsy Listing ID + status=published back to record
+    // 6. Write Etsy Listing ID, Listing URL, Automation State, and status=published back to record
     const etsyIdField = fieldByName["Etsy Listing ID"]
     const statusField = fieldByName["Status"]
+    const listingUrlField = fieldByName["Listing URL"]
+    const automationStateField = fieldByName["Automation State"]
+
     const fieldUpdates: Record<string, CellValue> = {}
     if (etsyIdField) fieldUpdates[etsyIdField.id] = listingId
     if (statusField) fieldUpdates[statusField.id] = "published"
+    if (listingUrlField) fieldUpdates[listingUrlField.id] = `https://www.etsy.com/listing/${listingId}`
+    if (automationStateField) {
+      const stateConfig = JSON.parse(automationStateField.config ?? "{}") as {
+        options?: Array<{ id: string; label: string }>
+      }
+      const publishedOption = stateConfig.options?.find((o) => o.label === "published")
+      if (publishedOption) fieldUpdates[automationStateField.id] = publishedOption.id
+    }
 
     const merged = { ...data, ...fieldUpdates }
     await prisma.record.update({
