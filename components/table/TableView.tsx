@@ -112,6 +112,8 @@ export function TableView() {
   const [automationProgress, setAutomationProgress] = useState<{ done: number; total: number } | null>(null)
   const abortRef = useRef(false)
   const runningRef = useRef(false)
+  const [publishRunning, setPublishRunning] = useState(false)
+  const [publishProgress, setPublishProgress] = useState<{ done: number; total: number } | null>(null)
 
   useEffect(() => {
     setViews([])
@@ -126,6 +128,8 @@ export function TableView() {
     setAutomationRunning(false)
     setAutomationProgress(null)
     abortRef.current = false
+    setPublishRunning(false)
+    setPublishProgress(null)
   }, [activeTableId])
 
   useEffect(() => {
@@ -274,6 +278,52 @@ export function TableView() {
     setAutomationRunning(false)
     setAutomationProgress(null)
     runningRef.current = false
+  }, [activeBaseId, fields, patchLocalRecord, updateRecord])
+
+  const publishListings = useCallback(async (recordIds: string[]) => {
+    if (!activeBaseId || runningRef.current) return
+
+    setPublishRunning(true)
+    runningRef.current = true
+    abortRef.current = false
+    setPublishProgress({ done: 0, total: recordIds.length })
+
+    const automationStateField = fields.find((f) => f.name === "Automation State")
+
+    let done = 0
+    for (const recordId of recordIds) {
+      if (abortRef.current) break
+
+      try {
+        const res = await fetch("/api/etsy/publish", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ recordId }),
+        })
+
+        if (res.ok) {
+          const { fieldUpdates } = await res.json()
+          patchLocalRecord(recordId, fieldUpdates)
+        } else {
+          if (automationStateField) {
+            patchLocalRecord(recordId, { [automationStateField.id]: "error" })
+            await updateRecord(recordId, { [automationStateField.id]: "error" })
+          }
+        }
+      } catch {
+        if (automationStateField) {
+          patchLocalRecord(recordId, { [automationStateField.id]: "error" })
+          await updateRecord(recordId, { [automationStateField.id]: "error" })
+        }
+      }
+
+      done++
+      setPublishProgress({ done, total: recordIds.length })
+    }
+
+    setPublishRunning(false)
+    runningRef.current = false
+    setPublishProgress(null)
   }, [activeBaseId, fields, patchLocalRecord, updateRecord])
 
   const retryErrors = useCallback(() => {
@@ -553,6 +603,9 @@ export function TableView() {
                 onRun={runAutomation}
                 onStop={() => { abortRef.current = true }}
                 onRetry={retryErrors}
+                onPublish={publishListings}
+                publishing={publishRunning}
+                publishProgress={publishProgress}
               />
             )}
             {expandedRecord && (
