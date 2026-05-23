@@ -1,4 +1,5 @@
 import type { ListingSettings } from "@/types/listing-settings"
+import type { Automation } from "@/types/automation"
 
 export type FieldType =
   | "text"
@@ -104,6 +105,7 @@ export interface AppTable {
 export interface BaseConfig {
   integration?: "etsy" | string
   listingSettings?: ListingSettings
+  automations?: Automation[]
 }
 
 export interface Base {
@@ -113,6 +115,8 @@ export interface Base {
   config: BaseConfig
   spaceId: string
   tables: AppTable[]
+  etsyConnected?: boolean
+  etsyShopName?: string | null
 }
 
 export interface Space {
