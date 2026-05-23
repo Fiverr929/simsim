@@ -241,7 +241,17 @@ export function DynamicGrid({
 
   const onDelete = useCallback((selection: GridSelection): false => {
     const colIndices = selection.columns.toArray()
-    const rowIndices = selection.rows.toArray()
+    const rowIndexSet = new Set(selection.rows.toArray())
+
+    if (selection.current?.range) {
+      const { y, height } = selection.current.range
+      for (let i = y; i < y + height; i++) rowIndexSet.add(i)
+    }
+    for (const extra of selection.current?.rangeStack ?? []) {
+      for (let i = extra.y; i < extra.y + extra.height; i++) rowIndexSet.add(i)
+    }
+
+    const rowIndices = [...rowIndexSet]
 
     const deletableFields = colIndices
       .map((i) => visibleFields[i]?.id)
@@ -308,7 +318,7 @@ export function DynamicGrid({
           rowHeight={rowHeight}
           getRowThemeOverride={getRowThemeOverride}
           onRowAppended={onRecordAdd}
-          trailingRowOptions={{ hint: "New record…", sticky: true, tint: true }}
+          trailingRowOptions={{ hint: "New listing…", sticky: true, tint: true }}
           rightElementProps={{ fill: true, sticky: false }}
           rightElement={
             <button
@@ -350,9 +360,20 @@ export function DynamicGrid({
             </button>
             <button
               className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"
-              onClick={() => { setContextMenu(null); setConfirmId(contextMenu.recordId) }}
+              onClick={() => {
+                setContextMenu(null)
+                const selectedRowIds = gridSelection.rows.toArray().map((i) => records[i]?.id).filter(Boolean) as string[]
+                const isPartOfSelection = selectedRowIds.includes(contextMenu.recordId)
+                if (isPartOfSelection && selectedRowIds.length > 1) {
+                  setBulkRowConfirm(selectedRowIds)
+                } else {
+                  setConfirmId(contextMenu.recordId)
+                }
+              }}
             >
-              Delete record
+              {gridSelection.rows.toArray().length > 1 && gridSelection.rows.toArray().map((i) => records[i]?.id).includes(contextMenu.recordId)
+                ? `Delete ${gridSelection.rows.toArray().length} records`
+                : "Delete record"}
             </button>
           </div>
         </>

@@ -5,7 +5,18 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(npx tsc *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(bash *)",
+      "Bash(npx prisma *)",
+      "Bash(python3 -c ' *)",
+      "PowerShell(cd \"C:\\\\Users\\\\This PC\\\\Gravity\\\\SIDE APPS\\\\workstation\"; $query = \"SELECT ec.id, ec.baseId, ec.shopId, ec.shopName, ec.tokenExpiry, ec.lastSynced, b.name as baseName FROM EtsyConnection ec JOIN Base b ON ec.baseId = b.id\"; & \"C:\\\\Users\\\\This PC\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" -c \"import sqlite3,json; conn=sqlite3.connect\\('dev.db'\\); conn.row_factory=sqlite3.Row; cur=conn.cursor\\(\\); cur.execute\\('$query'\\); rows=[dict\\(r\\) for r in cur.fetchall\\(\\)]; print\\(json.dumps\\(rows,indent=2\\)\\); conn.close\\(\\)\" 2>&1)",
+      "PowerShell(cd \"C:\\\\Users\\\\This PC\\\\Gravity\\\\SIDE APPS\\\\workstation\"; $dbPath = Resolve-Path \"dev.db\"; Add-Type -Path \\(Get-ChildItem \"C:\\\\Windows\\\\assembly\" -Recurse -Filter \"System.Data.SQLite.dll\" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName\\) 2>$null; Write-Host \"db: $dbPath\")",
+      "Bash(sqlite3 \"C:\\\\Users\\\\This PC\\\\Gravity\\\\SIDE APPS\\\\workstation\\\\dev.db\" \".mode column\" \".headers on\" \"SELECT ec.id, ec.baseId, ec.shopId, ec.shopName, ec.tokenExpiry, ec.lastSynced, b.name as baseName FROM EtsyConnection ec JOIN Base b ON ec.baseId = b.id;\")",
+      "PowerShell(Invoke-RestMethod -Uri \"http://localhost:3000/api/bases?spaceId=cmpiiyv9m0000fcus45p93pjk\" -Method GET | ConvertTo-Json -Depth 4)",
+      "PowerShell(Start-Sleep -Seconds 2; Invoke-RestMethod -Uri \"http://localhost:3000/api/etsy/sync/cmpinjbns00o5fcusozi37tyw\" -Method POST | ConvertTo-Json -Depth 5)",
+      "Bash(gh api *)"
     ]
   }
 }

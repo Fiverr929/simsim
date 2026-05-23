@@ -16,14 +16,31 @@ model Space {
 }
 
 model Base {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  name      String
-  icon      String   @default("📊")
-  config    String   @default("{}")
-  spaceId   String
-  space     Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  tables    Table[]
+  id              String           @id @default(cuid())
+  createdAt       DateTime         @default(now())
+  name            String
+  icon            String           @default("📊")
+  config          String           @default("{}")
+  spaceId         String
+  space           Space            @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  tables          Table[]
+  etsyConnection  EtsyConnection?
+}
+
+model EtsyConnection {
+  id               String    @id @default(cuid())
+  baseId           String    @unique
+  base             Base      @relation(fields: [baseId], references: [id], onDelete: Cascade)
+  shopId           String
+  shopName         String?
+  refreshToken     String
+  accessToken      String?
+  tokenExpiry      DateTime?
+  sections         String    @default("[]")
+  returnPolicies   String    @default("[]")
+  shippingProfiles String    @default("[]")
+  lastSynced       DateTime?
+  createdAt        DateTime  @default(now())
 }
 
 model Table {

@@ -1,9 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { ChevronRight, ChevronDown, Plus, MoreHorizontal, Table2, Database, Trash2, Pencil, ShoppingBag } from "lucide-react"
+import { ChevronRight, ChevronDown, Plus, MoreHorizontal, Table2, Database, Trash2, Pencil, ShoppingBag, Plug, Check } from "lucide-react"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
+import { EtsyConnectDialog } from "@/components/etsy/EtsyConnectDialog"
 import { useApp } from "@/components/app/AppContext"
 import type { Base, AppTable, BaseConfig } from "@/types/core"
 import { cn } from "@/lib/utils"
@@ -22,6 +23,8 @@ export function BaseSidebar() {
   const [tableEditingId, setTableEditingId] = useState<string | null>(null)
   const [tableEditName, setTableEditName] = useState("")
   const [confirmDelete, setConfirmDelete] = useState<{ type: "base" | "table"; id: string; baseId?: string; name: string } | null>(null)
+  const [connectingBaseId, setConnectingBaseId] = useState<string | null>(null)
+  const [storeDropdownOpen, setStoreDropdownOpen] = useState(false)
   const editRef = useRef<HTMLInputElement>(null)
 
   const fetchBases = useCallback(async () => {
@@ -36,6 +39,11 @@ export function BaseSidebar() {
 
   useEffect(() => { fetchBases() }, [fetchBases])
   useEffect(() => { if (editingId && editRef.current) editRef.current.focus() }, [editingId])
+  useEffect(() => {
+    const handler = () => fetchBases()
+    window.addEventListener("etsy:store-updated", handler)
+    return () => window.removeEventListener("etsy:store-updated", handler)
+  }, [fetchBases])
 
   const addBase = async () => {
     if (!activeSpaceId) return
@@ -51,13 +59,6 @@ export function BaseSidebar() {
     setEditingId(base.id)
   }
 
-  const addNewListingRow = (base: BaseWithTables) => {
-    const digitalTable = base.tables.find((t) => t.name === "Digital Listings") ?? base.tables[0]
-    if (!digitalTable) return
-    openTable(digitalTable.id, undefined, base.id)
-    setActiveBaseIntegration(base.config?.integration ?? null)
-    window.dispatchEvent(new CustomEvent("etsy:new-listing", { detail: { tableId: digitalTable.id } }))
-  }
 
   const addEtsyStore = async () => {
     if (!activeSpaceId) return
@@ -68,11 +69,12 @@ export function BaseSidebar() {
     })
     if (!res.ok) { toast.error("Failed to create Etsy Store"); return }
     const base: BaseWithTables & { firstTableId: string; firstViewId: string | null } = await res.json()
-    setBases((prev) => [...prev, base])
+    setBases((prev) => [...prev, { ...base, etsyConnected: false, etsyShopName: null }])
     setExpanded((prev) => new Set([...prev, base.id]))
     setActiveBaseId(base.id)
     setActiveBaseIntegration("etsy")
     if (base.firstTableId) openTable(base.firstTableId, base.firstViewId ?? undefined, base.id)
+    setConnectingBaseId(base.id)
   }
 
   const renameBase = async (id: string, name: string) => {
@@ -180,35 +182,110 @@ export function BaseSidebar() {
           return (
             <>
               {/* Etsy Store section */}
-              {etsyBases.map((base) => (
-                <div key={base.id} className="mb-3">
-                  <div className="flex items-center gap-1.5 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-400 select-none">
-                    <ShoppingBag size={10} />
-                    {base.name}
-                  </div>
-                  {base.tables.map((table) => (
-                    <div
-                      key={table.id}
-                      className={cn(
-                        "group flex items-center gap-1.5 rounded-md px-2 py-1 hover:bg-orange-50 cursor-pointer ml-1",
-                        activeTableId === table.id && "bg-orange-50"
+              {etsyBases.length > 0 && (() => {
+                const activeEtsyBase = etsyBases.find((b) => b.id === activeBaseId) ?? etsyBases[0]
+                return (
+                  <div className="mb-3">
+                    {/* Store selector */}
+                    <div className="relative mb-1">
+                      <button
+                        onClick={() => setStoreDropdownOpen((o) => !o)}
+                        className={cn(
+                          "w-full flex items-center gap-2 px-2.5 py-2 rounded-lg border text-xs font-medium transition-colors",
+                          storeDropdownOpen
+                            ? "bg-orange-50 border-orange-200 text-orange-700"
+                            : "bg-white border-neutral-200 text-neutral-700 hover:border-orange-200 hover:bg-orange-50"
+                        )}
+                      >
+                        <ShoppingBag size={12} className="text-orange-400 shrink-0" />
+                        <span className="flex-1 text-left truncate">
+                          {activeEtsyBase.etsyConnected && activeEtsyBase.etsyShopName
+                            ? activeEtsyBase.etsyShopName
+                            : activeEtsyBase.name}
+                        </span>
+                        {activeEtsyBase.etsyConnected
+                          ? <div className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
+                          : <div className="w-1.5 h-1.5 rounded-full bg-orange-300 shrink-0" />}
+                        <ChevronDown size={11} className={cn("text-neutral-400 shrink-0 transition-transform", storeDropdownOpen && "rotate-180")} />
+                      </button>
+
+                      {storeDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setStoreDropdownOpen(false)} />
+                          <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border rounded-lg shadow-lg py-1 overflow-hidden">
+                            {etsyBases.map((base) => (
+                              <div
+                                key={base.id}
+                                className="group/item flex items-center gap-2 px-3 py-2 text-xs hover:bg-orange-50 cursor-pointer"
+                                onClick={() => {
+                                  setStoreDropdownOpen(false)
+                                  const firstTable = base.tables[0]
+                                  if (firstTable) { openTable(firstTable.id); setActiveBaseId(base.id); setActiveBaseIntegration(base.config?.integration ?? null) }
+                                }}
+                              >
+                                <Check size={11} className={cn("shrink-0", base.id === activeEtsyBase.id ? "text-orange-500" : "text-transparent")} />
+                                <span className="flex-1 truncate text-neutral-700">{base.etsyConnected && base.etsyShopName ? base.etsyShopName : base.name}</span>
+                                <span
+                                  className="opacity-0 group-hover/item:opacity-100 text-[10px] text-neutral-400 hover:text-orange-500 shrink-0 cursor-pointer"
+                                  onClick={(e) => { e.stopPropagation(); setStoreDropdownOpen(false); setConnectingBaseId(base.id) }}
+                                >
+                                  {base.etsyConnected ? "Manage" : "Connect"}
+                                </span>
+                                <span
+                                  className="opacity-0 group-hover/item:opacity-100 p-0.5 text-neutral-300 hover:text-red-500 shrink-0 cursor-pointer rounded"
+                                  onClick={(e) => { e.stopPropagation(); setStoreDropdownOpen(false); setConfirmDelete({ type: "base", id: base.id, name: base.etsyShopName ?? base.name }) }}
+                                >
+                                  <Trash2 size={10} />
+                                </span>
+                              </div>
+                            ))}
+                            <div className="border-t mt-1 pt-1">
+                              <button
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-orange-500 hover:bg-orange-50"
+                                onClick={() => { setStoreDropdownOpen(false); addEtsyStore() }}
+                              >
+                                <Plus size={11} /> Add Etsy Store
+                              </button>
+                            </div>
+                          </div>
+                        </>
                       )}
-                      onClick={() => { openTable(table.id); setActiveBaseId(base.id); setActiveBaseIntegration(base.config?.integration ?? null) }}
-                    >
-                      <Table2 size={12} className={cn("shrink-0", activeTableId === table.id ? "text-orange-500" : "text-neutral-400")} />
-                      <span className={cn("flex-1 text-xs truncate", activeTableId === table.id ? "text-orange-600 font-medium" : "text-neutral-600")}>
-                        {table.name}
-                      </span>
                     </div>
-                  ))}
+
+                    {/* Tables for active store */}
+                    {activeEtsyBase.tables.map((table) => (
+                      <div
+                        key={table.id}
+                        className={cn(
+                          "group flex items-center gap-1.5 rounded-md px-2 py-1 hover:bg-orange-50 cursor-pointer ml-1",
+                          activeTableId === table.id && "bg-orange-50"
+                        )}
+                        onClick={() => { openTable(table.id); setActiveBaseId(activeEtsyBase.id); setActiveBaseIntegration(activeEtsyBase.config?.integration ?? null) }}
+                      >
+                        <Table2 size={12} className={cn("shrink-0", activeTableId === table.id ? "text-orange-500" : "text-neutral-400")} />
+                        <span className={cn("flex-1 text-xs truncate", activeTableId === table.id ? "text-orange-600 font-medium" : "text-neutral-600")}>
+                          {table.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+
+              {/* No Etsy stores yet */}
+              {etsyBases.length === 0 && (
+                <div className="mb-3 mx-1 rounded-lg border border-dashed border-orange-200 p-4 text-center">
+                  <ShoppingBag size={18} className="text-orange-300 mx-auto mb-2" />
+                  <p className="text-xs font-medium text-neutral-600 mb-0.5">No Etsy store connected</p>
+                  <p className="text-[11px] text-neutral-400 mb-3">Connect your store to start automating listings</p>
                   <button
-                    className="flex items-center gap-1.5 ml-1 px-2 py-1 text-xs text-orange-500 hover:bg-orange-50 rounded-md w-full"
-                    onClick={() => addNewListingRow(base)}
+                    onClick={addEtsyStore}
+                    className="px-3 py-1.5 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium"
                   >
-                    <Plus size={11} /> New Listing
+                    Add Etsy Store
                   </button>
                 </div>
-              ))}
+              )}
 
               {/* Divider between Etsy and generic */}
               {etsyBases.length > 0 && genericBases.length > 0 && (
@@ -332,12 +409,6 @@ export function BaseSidebar() {
         >
           <Plus size={12} /> <Database size={12} /> Add base
         </button>
-        <button
-          className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs text-orange-500 hover:bg-orange-50 rounded-md"
-          onClick={addEtsyStore}
-        >
-          <ShoppingBag size={12} /> New Etsy Store
-        </button>
       </div>
 
       {confirmDelete && (
@@ -352,6 +423,25 @@ export function BaseSidebar() {
           onCancel={() => setConfirmDelete(null)}
         />
       )}
+
+      {connectingBaseId && (() => {
+        const base = bases.find((b) => b.id === connectingBaseId)
+        return (
+          <EtsyConnectDialog
+            baseId={connectingBaseId}
+            shopName={base?.etsyShopName}
+            onConnected={(shopName) => {
+              setBases((prev) => prev.map((b) => b.id === connectingBaseId ? { ...b, etsyConnected: true, etsyShopName: shopName } : b))
+              setConnectingBaseId(null)
+            }}
+            onDisconnected={() => {
+              setBases((prev) => prev.map((b) => b.id === connectingBaseId ? { ...b, etsyConnected: false, etsyShopName: null } : b))
+              setConnectingBaseId(null)
+            }}
+            onClose={() => setConnectingBaseId(null)}
+          />
+        )
+      })()}
     </div>
   )
 }

@@ -10,9 +10,17 @@ export async function GET(req: Request) {
     const bases = await prisma.base.findMany({
       where: { spaceId },
       orderBy: { createdAt: "asc" },
-      include: { tables: { orderBy: { order: "asc" }, select: { id: true, name: true, order: true, baseId: true } } },
+      include: {
+        tables: { orderBy: { order: "asc" }, select: { id: true, name: true, order: true, baseId: true } },
+        etsyConnection: { select: { shopName: true, lastSynced: true } },
+      },
     })
-    return NextResponse.json(bases.map((b) => ({ ...b, config: JSON.parse(b.config) })))
+    return NextResponse.json(bases.map((b) => ({
+      ...b,
+      config: JSON.parse(b.config),
+      etsyConnected: !!(b.etsyConnection?.shopName && b.etsyConnection.shopName !== "pending"),
+      etsyShopName: b.etsyConnection?.shopName ?? null,
+    })))
   } catch (err) {
     return handleApiError(err)
   }

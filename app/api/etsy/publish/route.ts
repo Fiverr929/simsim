@@ -8,7 +8,6 @@ import { prisma } from "@/lib/db"
 import { handleApiError, apiError } from "@/lib/api"
 import type { CellValue } from "@/types/core"
 
-const SHOP_ID = process.env.ETSY_SHOP_ID!
 
 function resolveMultiSelectLabels(
   fieldConfig: string,
@@ -33,9 +32,13 @@ export async function POST(req: Request) {
 
     const record = await prisma.record.findUnique({
       where: { id: recordId },
-      include: { table: { include: { fields: true } } },
+      include: { table: { include: { fields: true, base: { include: { etsyConnection: true } } } } },
     })
     if (!record) return apiError("Record not found", 404)
+
+    const conn = record.table.base.etsyConnection
+    const shopId = conn?.shopId ?? process.env.ETSY_shopId!
+    const baseId = conn ? record.table.base.id : undefined
 
     const fields = record.table.fields
     const data = JSON.parse(record.data) as Record<string, CellValue>
@@ -110,10 +113,10 @@ export async function POST(req: Request) {
       if (ids.length) payload.production_partner_ids = ids
     }
 
-    const etsy = await getEtsyClient()
+    const etsy = await getEtsyClient(baseId)
 
     // 1. Create draft listing
-    const createRes = await etsy.post(`/application/shops/${SHOP_ID}/listings`, payload)
+    const createRes = await etsy.post(`/application/shops/${shopId}/listings`, payload)
     const listingId: number = createRes.data.listing_id
 
     // 2. Upload images
@@ -125,7 +128,7 @@ export async function POST(req: Request) {
         const fd = new FormData()
         fd.append("image", buffer, { filename: imageUrls[i].split("/").pop() ?? "image.jpg" })
         fd.append("rank", String(i + 1))
-        await etsy.post(`/application/shops/${SHOP_ID}/listings/${listingId}/images`, fd, {
+        await etsy.post(`/application/shops/${shopId}/listings/${listingId}/images`, fd, {
           headers: fd.getHeaders(),
         })
       } catch (e) {
@@ -141,7 +144,7 @@ export async function POST(req: Request) {
         const buffer = await readFile(filePath)
         const fd = new FormData()
         fd.append("video", buffer, { filename: videoUrls[0].split("/").pop() ?? "video.mp4" })
-        await etsy.post(`/application/shops/${SHOP_ID}/listings/${listingId}/videos`, fd, {
+        await etsy.post(`/application/shops/${shopId}/listings/${listingId}/videos`, fd, {
           headers: fd.getHeaders(),
         })
       } catch (e) {
@@ -158,7 +161,7 @@ export async function POST(req: Request) {
           const buffer = await readFile(filePath)
           const fd = new FormData()
           fd.append("file", buffer, { filename: url.split("/").pop() ?? "file" })
-          await etsy.post(`/application/shops/${SHOP_ID}/listings/${listingId}/files`, fd, {
+          await etsy.post(`/application/shops/${shopId}/listings/${listingId}/files`, fd, {
             headers: fd.getHeaders(),
           })
         } catch (e) {
@@ -168,7 +171,7 @@ export async function POST(req: Request) {
     }
 
     // 5. Activate listing
-    await etsy.put(`/application/shops/${SHOP_ID}/listings/${listingId}`, { state: "active" })
+    await etsy.put(`/application/shops/${shopId}/listings/${listingId}`, { state: "active" })
 
     // 6. Write Etsy Listing ID, Listing URL, Automation State, and status=published back to record
     const etsyIdField = fieldByName["Etsy Listing ID"]

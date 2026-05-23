@@ -138,4 +138,9 @@
   [tabindex]:focus-visible {
     @apply outline-none ring-2 ring-blue-400 ring-offset-1;
   }
+
+  .gdg-clip-region input:focus-visible,
+  .gdg-clip-region textarea:focus-visible {
+    @apply ring-0 ring-offset-0;
+  }
 }
