@@ -1,6 +1,6 @@
 "use client"
 
-import { Play, Square, RotateCcw, Loader2 } from "lucide-react"
+import { Play, Square, RotateCcw, Loader2, Upload } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { AppRecord, Field } from "@/types/core"
 
@@ -13,10 +13,15 @@ interface Props {
   onRun: (recordIds: string[]) => void
   onStop: () => void
   onRetry: () => void
+  onPublish: (recordIds: string[]) => void
+  publishing: boolean
+  publishProgress: { done: number; total: number } | null
 }
 
 export function AutomationToolbar({
-  records, fields, selectedRecordIds, running, progress, onRun, onStop, onRetry,
+  records, fields, selectedRecordIds,
+  running, progress, onRun, onStop, onRetry,
+  onPublish, publishing, publishProgress,
 }: Props) {
   const automationStateField = fields.find((f) => f.name === "Automation State")
 
@@ -33,6 +38,18 @@ export function AutomationToolbar({
     ? records.filter((r) => r.data[automationStateField.id] === "error").map((r) => r.id)
     : []
 
+  const reviewIds = automationStateField
+    ? records
+        .filter((r) => {
+          const reviewOption = automationStateField.config.options?.find((o) => o.label === "review")
+          return reviewOption && r.data[automationStateField.id] === reviewOption.id
+        })
+        .map((r) => r.id)
+    : []
+
+  const selectedReviewIds = selectedRecordIds.filter((id) => reviewIds.includes(id))
+  const publishTarget = selectedReviewIds.length > 0 ? selectedReviewIds : reviewIds
+
   const hasSelected = selectedRecordIds.length > 0
   const runTarget = hasSelected ? selectedRecordIds : pendingIds
 
@@ -42,7 +59,22 @@ export function AutomationToolbar({
         Automation
       </span>
 
-      {running ? (
+      {publishing ? (
+        <>
+          <div className="flex items-center gap-1.5 text-xs text-green-600 select-none">
+            <Loader2 size={12} className="animate-spin shrink-0" />
+            {publishProgress
+              ? `Publishing ${publishProgress.done} / ${publishProgress.total}…`
+              : "Publishing…"}
+          </div>
+          <button
+            onClick={onStop}
+            className="ml-1 flex items-center gap-1 px-2.5 py-0.5 text-xs text-red-600 bg-white hover:bg-red-50 rounded border border-red-200 transition-colors"
+          >
+            <Square size={11} /> Stop
+          </button>
+        </>
+      ) : running ? (
         <>
           <div className="flex items-center gap-1.5 text-xs text-orange-600 select-none">
             <Loader2 size={12} className="animate-spin shrink-0" />
@@ -74,6 +106,15 @@ export function AutomationToolbar({
               ? `Run pending (${pendingIds.length})`
               : "No pending rows"}
           </button>
+
+          {publishTarget.length > 0 && (
+            <button
+              onClick={() => onPublish(publishTarget)}
+              className="flex items-center gap-1 px-2.5 py-0.5 text-xs text-green-600 bg-white hover:bg-green-50 rounded border border-green-200 transition-colors"
+            >
+              <Upload size={11} /> Publish ({publishTarget.length})
+            </button>
+          )}
 
           {errorIds.length > 0 && (
             <button
