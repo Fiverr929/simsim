@@ -15,7 +15,7 @@ import { DynamicGallery } from "@/components/table/DynamicGallery"
 import { DynamicKanban } from "@/components/table/DynamicKanban"
 import { RecordModal } from "@/components/table/RecordModal"
 import { AddFieldModal } from "@/components/table/AddFieldModal"
-import { ListingSettingsPanel } from "@/components/listing-settings/ListingSettingsPanel"
+import { AutomationsPanel } from "@/components/automations/AutomationsPanel"
 import { AutomationToolbar } from "@/components/table/AutomationToolbar"
 import type { AppRecord, CellValue, FieldConfig, FieldType, Filter, Sort, View, ViewConfig } from "@/types/core"
 
@@ -586,7 +586,7 @@ export function TableView() {
 
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
         {showSettings && activeBaseId ? (
-          <ListingSettingsPanel
+          <AutomationsPanel
             baseId={activeBaseId}
             fields={fields}
             onClose={() => setShowSettings(false)}
