@@ -214,16 +214,7 @@ export function TableView() {
   const runAutomation = useCallback(async (recordIds: string[]) => {
     if (!activeBaseId || runningRef.current) return
 
-    let batchSize = 10
-    try {
-      const res = await fetch(`/api/listing-settings/${activeBaseId}`)
-      if (res.ok) {
-        const s = await res.json()
-        batchSize = s.batchSize ?? 10
-      } else {
-        console.warn(`Failed to fetch listing settings: ${res.status}`)
-      }
-    } catch { console.warn("Failed to fetch batchSize, using default") }
+    const batchSize = 10
 
     const batch = recordIds.slice(0, batchSize)
     const automationStateField = fields.find((f) => f.name === "Automation State")

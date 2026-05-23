@@ -113,6 +113,7 @@ export async function POST(req: Request) {
     const fieldByName = Object.fromEntries(fields.map((f) => [f.name, f]))
 
     const automation = resolveAutomation(automations, data, fieldByName)
+    if (!automation) return apiError("No active automation found for this base", 400)
 
     // Load images
     const imagesField = fieldByName["Images"]
