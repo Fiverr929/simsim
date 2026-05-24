@@ -152,10 +152,18 @@ export function DynamicGrid({
   }, [])
 
   const visibleFields = useMemo(() => {
-    const filtered = fields.filter((f) => !hiddenFieldIds.includes(f.id))
-    if (!fieldOrder?.length) return filtered
-    const index = new Map(fieldOrder.map((id, i) => [id, i]))
-    return [...filtered].sort((a, b) => (index.get(a.id) ?? Infinity) - (index.get(b.id) ?? Infinity))
+    let ordered = fields.filter((f) => !hiddenFieldIds.includes(f.id))
+    if (fieldOrder?.length) {
+      const index = new Map(fieldOrder.map((id, i) => [id, i]))
+      ordered = [...ordered].sort((a, b) => (index.get(a.id) ?? Infinity) - (index.get(b.id) ?? Infinity))
+    }
+    const imagesIdx = ordered.findIndex((f) => f.name === "Images")
+    if (imagesIdx > 0) {
+      ordered = [...ordered]
+      const [img] = ordered.splice(imagesIdx, 1)
+      ordered.unshift(img)
+    }
+    return ordered
   }, [fields, hiddenFieldIds, fieldOrder])
 
   const columns = useMemo<GridColumn[]>(

@@ -45,21 +45,6 @@ export function BaseSidebar() {
     return () => window.removeEventListener("etsy:store-updated", handler)
   }, [fetchBases])
 
-  const addBase = async () => {
-    if (!activeSpaceId) return
-    const res = await fetch("/api/bases", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "New Base", spaceId: activeSpaceId }),
-    })
-    if (!res.ok) { toast.error("Failed to create base"); return }
-    const base: BaseWithTables = await res.json()
-    setBases((prev) => [...prev, base])
-    setExpanded((prev) => new Set([...prev, base.id]))
-    setEditingId(base.id)
-  }
-
-
   const addEtsyStore = async () => {
     if (!activeSpaceId) return
     const res = await fetch("/api/seed/etsy", {
@@ -400,15 +385,6 @@ export function BaseSidebar() {
             </>
           )
         })()}
-      </div>
-
-      <div className="p-2 border-t shrink-0 space-y-0.5">
-        <button
-          className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs text-neutral-500 hover:bg-neutral-100 rounded-md"
-          onClick={addBase}
-        >
-          <Plus size={12} /> <Database size={12} /> Add base
-        </button>
       </div>
 
       {confirmDelete && (

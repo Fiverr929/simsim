@@ -41,7 +41,7 @@ function AttachmentInput({ value, onChange }: { value: CellValue; onChange: (v: 
     }
   }, [urls, onChange])
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, disabled: uploading })
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, disabled: uploading, multiple: true })
 
   const remove = (url: string) => {
     const next = urls.filter((u) => u !== url)
@@ -376,7 +376,10 @@ export function RecordModal({ record, fields, integration, onUpdate, onDelete, o
 
         <div className="flex-1 overflow-y-auto">
           <div className="p-5 space-y-4">
-            {localFields.map((field) => {
+            {(isEtsyTable
+              ? [...localFields.filter((f) => f.name === "Images"), ...localFields.filter((f) => f.name !== "Images")]
+              : localFields
+            ).map((field) => {
               const isPrimary = field.isPrimary
               return (
                 <div key={field.id} className={isPrimary ? "pb-4 border-b border-neutral-100" : ""}>
